@@ -15,15 +15,15 @@
       >
         <el-sub-menu class="group-menu" v-for="(item, index) in data" :key="index" :index="index + ''">
           <template #title>
-            <span>{{item.valueName}}</span>
+            <span>{{item.type}}</span>
           </template>
           <el-menu-item
-            v-for="(childrenItem, key) in item.children"
-             :key="key"
-            :index="`${index}-${key}`"
+            v-for="(childrenItem, key) in item.ResourcesTypes"
+            :key="key"
+            :index="`${childrenItem.id}`"
             @click="handleClick"
           >
-            <span>{{childrenItem.valueName}}</span>
+            <span>{{childrenItem.resourcesName}}</span>
           </el-menu-item>
         </el-sub-menu>
       </el-menu>
@@ -32,10 +32,12 @@
       :span="20"
       class="main-container"
     >
-        <div
-          v-for="(item ,index) in message"
+        <a
+          v-for="item in message"
           :key="item.id"
           class="card-container"
+          :href="item.url"
+          target="_blank"
         >
           <el-card
             shadow="hover"
@@ -47,13 +49,13 @@
               <el-image
                 style="width:100%; height: 100%;"
                 :src="item.image"
-                :fit="cover"
+                fit="cover"
               />
             </div>
             <div
               class="card-right-container"
             >
-              <p class="card-title">{{item.title}}</p>
+              <p class="card-title">{{item.name}}</p>
               <p class="card-tags">
                 <el-tag
                   class="card-tag"
@@ -69,82 +71,45 @@
               <p class="card-text">{{item.introduce}}</p>
             </div>
           </el-card>
-        </div>
+        </a>
     </el-col>
   </el-row>
 </template>
 
-<script>
-  import { defineComponent, reactive, toRefs, ref, watchEffect } from 'vue'
-  import * as icons from '@element-plus/icons'
+<script lang="ts">
+  import { defineComponent, ref, watchEffect } from 'vue'
+  import { getResource, getType } from './api/index'
+  import { ElMessage } from 'element-plus'
 
   export default defineComponent({
-    components: {
-      ...icons
-    },
-    props: {},
     setup (props, context) {
-      
-      const history = ref('0-0')
+      const data: any = ref([])
 
-      const data = ref([{
-        valueName: '前端',
-        children: [{
-            valueName: 'Vue'
-          }, {
-            valueName: 'react'
-          }]
-      }, {
-        valueName: '后端',
-        children: [{
-          valueName: 'NodeJs',
-        }, {
-          valueName: 'Java'
-        }]
-      }, {
-        valueName: '其他'
-      }])
+      // 初始化加载资源分类目录
+      getType().then((resp: any) => {
+        if (resp.state !== 'success') return ElMessage.error('获取目录失败, 请刷新重新获取!')
+        data.value = resp.data
+      })
 
-      const message = ref([{
-        id: 1,
-        url: '#',
-        title: '网站1',
-        introduce: '这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍这是一个介绍',
-        image: 'https://img0.baidu.com/it/u=810160506,373635054&fm=26&fmt=auto',
-        tags: ['标签1', '标签2']
-      }, {
-        id: 2,
-        url: '#',
-        title: '网站2',
-        introduce: '这是一个介绍',
-        image: 'https://img0.baidu.com/it/u=810160506,373635054&fm=26&fmt=auto',
-        tags: ['标签1', '标签2']
-      }, {
-        id: 3,
-        url: '#',
-        title: '网站3',
-        introduce: '这是一个介绍',
-        image: 'https://img0.baidu.com/it/u=810160506,373635054&fm=26&fmt=auto',
-        tags: ['标签1', '标签2']
-      }, {
-        id: 4,
-        url: '#',
-        title: '网站4',
-        introduce: '这是一个介绍',
-        image: 'https://img0.baidu.com/it/u=810160506,373635054&fm=26&fmt=auto',
-        tags: ['标签1', '标签2']
-      }, {
-        id: 5,
-        url: '#',
-        title: '网站5',
-        introduce: '这是一个介绍',
-        image: 'https://img0.baidu.com/it/u=810160506,373635054&fm=26&fmt=auto',
-        tags: ['标签1', '标签2']
-      }])
+      const history = ref('1')
 
-      const handleClick = (key, keyPath) => {
+      const message: any = ref([])
+
+      const handleClick = (key: any) => {
         history.value = key.index
       }
+
+      watchEffect(() => {
+        getResource(+history.value).then((resp: any) => {
+          if (resp.state !== 'success') return ElMessage.error('获取资源失败, 请刷新重新获取!')
+          message.value = resp.data.map((item: any) => {
+            return {
+              ...item,
+              tags: item.tags.split('|')
+            }
+          })
+        })
+      })
 
       const getRgbaColor = () => {
         return Math.floor(Math.random() * 255)
